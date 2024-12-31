@@ -54,6 +54,41 @@ void setUnitSize(state* s) {
     while (getchar() != '\n'); // Clear input buffer
 }
 
+void loadIntoMemory(state* s){
+    if (strcmp(s->file_name, "") == 0){
+        printf("Error: file name is empty\n");
+        return;
+    }
+
+    FILE *file = fopen(s->file_name, "rb");
+    if (file == NULL) {
+        printf("Error: could not open file '%s'\n", s->file_name);
+        return;
+    }
+
+    printf("Please enter <location> <length>\n"); //where we start reading from
+    char input[10000];
+    fgets(input, sizeof(input), stdin);
+
+    unsigned int location;
+    int length;
+    sscanf(input, "%x %d", &location, &length);
+
+    if (s->debug_mode) {
+        printf("Debug: file name: %s\n", s->file_name);
+        printf("Debug: location: %x\n", location);
+        printf("Debug: length: %d\n", length);
+    }
+
+    fseek(file, location, SEEK_SET);
+    size_t bytesRead = fread(s->mem_buf, s->unit_size, length, file);
+    
+    fclose(file);
+
+    printf("Loaded %zu units into memory\n", bytesRead);
+
+}
+
 void quit(state* s) {
     if (s->debug_mode) {
         printf("quitting\n");
@@ -126,7 +161,7 @@ int main() {
         {"Toggle Debug Mode", toggleDebugMode},
         {"Set File Name", setFileName},
         {"Set Unit Size", setUnitSize},
-        {"Load Into Memory", notImplementedYet},
+        {"Load Into Memory", loadIntoMemory},
         {"Toggle Display Mode", notImplementedYet},
         {"File Display", fileDisplay},
         {"Memory Display", memoryDisplay},
