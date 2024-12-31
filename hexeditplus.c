@@ -9,6 +9,7 @@ typedef struct {
   int unit_size;
   unsigned char mem_buf[10000];
   size_t mem_count;
+  char display_mode; //0 for decimal, 1 for hex
   /*
    .
    
@@ -122,6 +123,16 @@ void memoryDisplay(state* s) {
     }
 }
 
+void toggleDisplayMode(state *s){ //changing from 0 to 1 and 1 to 0
+     if (s->display_mode) {
+        s->display_mode = 0;
+        printf("Display flag now off, decimal representation\n");
+    } else {
+        s->display_mode = 1;
+        printf("Display flag now on, hexadecimal representation\n");
+    }
+}
+
 void saveIntoFile(state* s) {
     (void)s; // Suppress unused parameter warning
     printf("Not implemented yet\n");
@@ -144,11 +155,13 @@ void printMenu(struct fun_desc menu[]) {
     }
 }
 
+
 int main() {
     state s;
     s.debug_mode = 0;
     s.unit_size = 1;
     s.mem_count = 0;
+    s.display_mode = 0;
     s.file_name[0] = '\0';
     
     carray = malloc(5 * sizeof(char));
@@ -162,7 +175,7 @@ int main() {
         {"Set File Name", setFileName},
         {"Set Unit Size", setUnitSize},
         {"Load Into Memory", loadIntoMemory},
-        {"Toggle Display Mode", notImplementedYet},
+        {"Toggle Display Mode", toggleDisplayMode},
         {"File Display", fileDisplay},
         {"Memory Display", memoryDisplay},
         {"Save Into File", saveIntoFile},
