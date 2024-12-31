@@ -2,11 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
- 
-bool debug = false;
-int unitSize = 1;
-char fileName[128] = "";
-int memCount = 0;
 
 typedef struct {
   char debug_mode;
@@ -21,100 +16,143 @@ typedef struct {
   */
 } state;
 
- void toggleDebugMode(){
-    if(!debug){
-        debug = true;
+char *carray;
+void toggleDebugMode(state* s) {
+    if (s->debug_mode) {
+        s->debug_mode = 0;
+        printf("Debug flag now off\n");
+    } else {
+        s->debug_mode = 1;
         printf("Debug flag now on\n");
     }
-    else{
-        debug = false;
-        printf("Debug flag now off\n");
+}
+
+void setFileName(state* s) {
+    printf("Enter file name: ");
+    if (fgets(s->file_name, sizeof(s->file_name), stdin) != NULL) {
+        s->file_name[strcspn(s->file_name, "\n")] = '\0'; // Remove newline character
+        if (s->debug_mode == 0) {
+            printf("Debug: file name set to '%s'\n", s->file_name);
+        }
+    } else {
+        printf("Error reading file name\n");
     }
-    "";
- }
- void SetFileName(){
-    "";
- }
-void SetUnitSize(){
-    "";
-}
-void LoadIntoMemory(){
-    printf("Not implemented yet\n");
-}
-void ToggleDisplayMode(){
-    printf("Not implemented yet\n");
-}
-void FileDisplay(){
-    printf("Not implemented yet\n");
-}
-void MemoryDisplay(){
-    printf("Not implemented yet\n");
-}
-void SaveIntoFile(){
-    printf("Not implemented yet\n");
-}
-void MemoryModify(){
-    printf("Not implemented yet\n");
-}
-void Quit(){
-    "";
 }
 
+void setUnitSize(state* s) {
+    int unit_size;
+    printf("Enter unit size (1, 2, or 4): ");
+    scanf("%d", &unit_size);
+    if (unit_size == 1 || unit_size == 2 || unit_size == 4) {
+        s->unit_size = unit_size;
+        if (s->debug_mode) {
+            printf("Debug: set unit size to %d\n", s->unit_size);
+        }
+    } else {
+        printf("Invalid unit size\n");
+    }
+    while (getchar() != '\n'); // Clear input buffer
+}
 
- struct fun_desc
- {
+void quit(state* s) {
+    if (s->debug_mode) {
+        printf("quitting\n");
+    }
+    if (carray != NULL) {
+        free(carray);
+        carray = NULL; // Set to NULL after freeing to avoid double free
+    }
+    exit(0);
+}
+
+void notImplementedYet(state* s) {
+    (void)s; // Suppress unused parameter warning
+    printf("Not implemented yet\n");
+}
+
+void fileDisplay(state* s) {
+    (void)s; // Suppress unused parameter warning
+    printf("Not implemented yet\n");
+}
+
+void memoryDisplay(state* s) {
+    static char* hex_formats[] = {"%#hhx\n", "%#hx\n", "No such unit", "%#x\n"};
+    static char* dec_formats[] = {"%#hhd\n", "%#hd\n", "No such unit", "%#d\n"};
+    int u = s->unit_size;
+    for (size_t i = 0; i < s->mem_count; i += u) {
+        int val = 0;
+        memcpy(&val, s->mem_buf + i, u);
+        printf(dec_formats[u-1], val);
+        printf(hex_formats[u-1], val);
+    }
+}
+
+void saveIntoFile(state* s) {
+    (void)s; // Suppress unused parameter warning
+    printf("Not implemented yet\n");
+}
+
+void memoryModify(state* s) {
+    (void)s; // Suppress unused parameter warning
+    printf("Not implemented yet\n");
+}
+
+struct fun_desc {
     char *name;
-    char (*fun)(char);
- };
- 
- void menu(){
-    if(debug){
-        printf("Unit size is %d\n", unitSize);
-        printf("File name is %s\n", fileName);
-        printf("Mem count is %d\n", memCount);
+    void (*fun)(state*);
+};
+
+void printMenu(struct fun_desc menu[]) {
+    printf("Please select an option from the menu (ctrl^D for exit):\n");
+    for (int i = 0; menu[i].name != NULL; i++) {
+        printf("%d) %s\n", i, menu[i].name);
     }
-    char* carray=malloc(5*sizeof(char));
-    struct fun_desc menu[] =
-    {
+}
+
+int main() {
+    state s;
+    s.debug_mode = 0;
+    s.unit_size = 1;
+    s.mem_count = 0;
+    s.file_name[0] = '\0';
+    
+    carray = malloc(5 * sizeof(char));
+    if (carray == NULL) {
+        printf("Memory allocation failed\n");
+        exit(1);
+    }
+
+    struct fun_desc menu[] = {
         {"Toggle Debug Mode", toggleDebugMode},
-        {"Set File Name", SetFileName},
-        {"Set Unit Size", SetUnitSize},
-        {"Load Into Memory", LoadIntoMemory},
-        {"Toggle Display Mode", ToggleDisplayMode},
-        {"File Display", FileDisplay},
-        {"Memory Display", MemoryDisplay},
-        {"Save Into File", SaveIntoFile},
-        {"Memory Modify", MemoryModify},
-        {"Quit", Quit},
+        {"Set File Name", setFileName},
+        {"Set Unit Size", setUnitSize},
+        {"Load Into Memory", notImplementedYet},
+        {"Toggle Display Mode", notImplementedYet},
+        {"File Display", fileDisplay},
+        {"Memory Display", memoryDisplay},
+        {"Save Into File", saveIntoFile},
+        {"Memory Modify", memoryModify},
+        {"Quit", quit},
         {NULL, NULL}
     };
 
-    int bounds = sizeof(menu)/sizeof(menu[0]);
-    int done = 0;
-    int num;
-    while(!done){   
-        printf("Please select an option from the menu!(ctrl^D for exit)\n");
-        for(int i = 0; i<sizeof(menu)/sizeof(menu[0]); i++){
-          printf("%d. %s\n", i, menu[i].name);
-        }
-        if((scanf("%d", &num))==EOF){
-          done = 1;
-          break;
-        }
-        if(num>bounds){
-            printf("Not within bounds\n");
-            done = 1;
+    while (1) {
+        printMenu(menu);
+        int num;
+        printf("Option: ");
+        if (scanf("%d", &num) != 1) {
             break;
         }
-        else{
-            printf("Within bounds\n");
-            carray = map(carray,5 , menu[num].fun);
+        while (getchar() != '\n'); // Clear input buffer
+
+        if (num < 0 || num >= (int)(sizeof(menu) / sizeof(menu[0]) - 1)) {
+            printf("Not within bounds\n");
+            continue;
         }
-        
-        
+        printf("Within bounds\n");
+        printf("Option: %d\n", num);
+        menu[num].fun(&s);
     }
-    free(carray);
-}
-void main(){
-    menu();
+
+    return 0;
 }
