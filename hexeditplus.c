@@ -17,6 +17,9 @@ typedef struct {
   */
 } state;
 
+ static char* hex_formats[] = {"%#hhx\n", "%#hx\n", "No such unit", "%#x\n"};
+ static char* dec_formats[] = {"%#hhd\n", "%#hd\n", "No such unit", "%#d\n"};
+
 char *carray;
 void toggleDebugMode(state* s) {
     if (s->debug_mode) {
@@ -107,13 +110,39 @@ void notImplementedYet(state* s) {
 }
 
 void memoryModify (state* s){
-     (void)s; // Suppress unused parameter warning
-    printf("Not implemented yet\n");
+    printf("Please enter <location> <val>\n");
+    char input[100];
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        printf("Error reading input\n");
+        return;
+    }
+    unsigned int location;
+    unsigned int val;
+    sscanf(input, "%x %x", &location, &val);
+    if (s->debug_mode) {
+        printf("Debug: location: %x\n", location);
+        printf("Debug: val: %x\n", val);
+    }
+    
+    switch (s->unit_size) {
+        case 1:
+            *((unsigned char*)(s->mem_buf + location)) = (unsigned char)val;
+            break;
+        case 2:
+            *((unsigned short*)(s->mem_buf + location)) = (unsigned short)val;
+            break;
+        case 4:
+            *((unsigned int*)(s->mem_buf + location)) = (unsigned int)val;
+            break;
+        default:
+            printf("Error: invalid unit size\n");
+            return;
+    }
 }
 
 
-void fileDisplay(state* s){
-     if (strcmp(s->file_name, "") == 0) {
+void fileDisplay(state* s) {
+    if (strcmp(s->file_name, "") == 0) {
         printf("Error: file name is empty\n");
         return;
     }
@@ -124,64 +153,40 @@ void fileDisplay(state* s){
         return;
     }
 
-    printf("Enter file offset and lenegth\n");
-    unsigned int address;
-    int length;
-    char input[10000];
-
-    scanf("%x %d", &address, &length); // read the address in hex and the length in decimal
-    printf("%s\n", s-> display_mode == 1 ? "Decimal" : "Hexadecimal");
-    printf("%s\n", s-> display_mode == 1 ? "=======" : "===========");
-    static char* hex_formats[] = {"%#hhx\n", "%#hx\n", "No such unit", "%#x\n"};
-    static char* dec_formats[] = {"%#hhd\n", "%#hd\n", "No such unit", "%#d\n"};
-
+    printf("Enter file offset and length\n");
+    char input[100];
     if (fgets(input, sizeof(input), stdin) == NULL) {
         printf("Error reading input\n");
         fclose(file);
         return;
     }
-
-    for (int i = 0; i < length; i++) {
-        int unitSize = s->unit_size;
-        int value = 0;
-        unsigned char* tmp;        
-        tmp = (unsigned char*)(address + i * unitSize);
-        value = *((int*)tmp);
-
-        if (s->display_mode == 0) {
-            printf(hex_formats[s->unit_size - 1], value);
-        } else {
-            printf(dec_formats[s->unit_size - 1], value);
-        }
-    }
-}
-
-void memoryDisplay(state* s){
-      printf("Please enter <addr> <u>\n");
-    char input[100];
-    if (fgets(input, sizeof(input), stdin) == NULL) {
-        printf("Error reading input\n");
-        return;
-    }
-
-    unsigned int addr;
+    
+      printf("%s\n", s-> display_mode == 1 ? "Decimal" : "Hexadecimal");
+      printf("%s\n", s-> display_mode == 1 ? "=======" : "===========");
+    unsigned int offset;
     int u;
-    if (sscanf(input, "%x %d", &addr, &u) != 2) {
+    if (sscanf(input, "%x %d", &offset, &u) != 2) {
         printf("Invalid input format\n");
+        fclose(file);
         return;
     }
 
-     if (s->debug_mode) {
-        printf("Debug: addr: %x\n", addr);
+    if (s->debug_mode) {
+        printf("Debug: file name: %s\n", s->file_name);
+        printf("Debug: offset: %x\n", offset);
         printf("Debug: u: %d\n", u);
     }
 
-    unsigned char* start_addr = (addr == 0) ? s->mem_buf : (unsigned char*)addr;
+    fseek(file, offset, SEEK_SET);
+    unsigned char buffer[10000];
+    size_t length = fread(buffer, s->unit_size, u, file);
+    fclose(file);
+
     static char* hex_formats[] = {"%#hhx\n", "%#hx\n", "No such unit", "%#x\n"};
     static char* dec_formats[] = {"%#hhd\n", "%#hd\n", "No such unit", "%#d\n"};
-    for (size_t i = 0; i < u * s->unit_size; i += s->unit_size) {
+    for (size_t i = 0; i < length * s->unit_size; i += s->unit_size) {
         int val = 0;
-        memcpy(&val, start_addr + i, s->unit_size);
+        memcpy(&val, buffer + i, s->unit_size);
         if (s->display_mode) {
             printf(hex_formats[s->unit_size - 1], val);
         } else {
@@ -189,6 +194,39 @@ void memoryDisplay(state* s){
         }
     }
 }
+
+
+//Need to check
+void memoryDisplay(state* s){
+    int length = 0;
+    unsigned int address = 0;
+
+    printf("Enter file offset and length\n");
+    char input[100];
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        printf("Error reading input\n");
+        return;
+    }
+
+     if (sscanf(input, "%x %d", &address, &length) != 2) {
+        printf("Invalid input format\n");
+        return;
+    }
+
+    unsigned char* tmp;
+    for (size_t i = 0; i < length; i += s->unit_size) {
+        int val = 0;
+        tmp = (unsigned char*)(s->mem_buf + i * s->unit_size);
+        val = *((int*)tmp);
+        if (s->display_mode) {
+            printf(hex_formats[s->unit_size - 1], val);
+        } else {
+            printf(dec_formats[s->unit_size - 1], val);
+        }
+    }
+}
+
+
 
 void toggleDisplayMode(state *s){ //changing from 0 to 1 and 1 to 0
      if (s->display_mode) {
@@ -201,8 +239,62 @@ void toggleDisplayMode(state *s){ //changing from 0 to 1 and 1 to 0
 }
 
 void saveIntoFile(state* s) {
-    (void)s; // Suppress unused parameter warning
-    printf("Not implemented yet\n");
+    if(strcmp(s->file_name, "") == 0) {
+        printf("Error: file name is empty\n");
+        return;
+    }
+    if(s->file_name == NULL) {
+        printf("Error: file name is NULL\n");
+        return;
+    }
+    if(s == NULL) {
+        printf("Error: state is NULL\n");
+        return;
+    }
+    printf("Please enter <source-address> <target-location> <length>\n");
+    char input[100];
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        printf("Error reading input\n");
+        return;
+    }
+    unsigned int source_address;
+    unsigned int target_location;
+    unsigned int length;
+    sscanf(input,"%x %x %d", &source_address, &target_location, &length); // read the address in hex and the length in decimal
+    
+    printf("source_address: %x\n", source_address);
+    FILE *file = fopen(s->file_name, "rb+");
+    if(file == NULL) {
+        printf("Error: could not open file '%s'\n", s->file_name);
+        return;
+    }
+    fseek(file, 0, SEEK_END); //to get the file size
+    int fileSize =  ftell(file); 
+    
+    printf("file size: %d\n", fileSize);
+    printf("target location: %d\n", target_location);
+    
+    if(target_location > fileSize) {
+        printf("Error: target location is out of bounds\n");
+        return;
+    }
+
+    if (s->debug_mode) {
+        printf("Debug: file name: %s\n", s->file_name);
+        printf("Debug: source address: %x\n", source_address);
+        printf("Debug: target location: %x\n", target_location);
+        printf("Debug: length: %d\n", length);
+    }
+    
+    fseek(file, target_location, SEEK_SET);
+    if (source_address) {
+        fwrite(s->mem_buf, s->unit_size, length, file); 
+    }
+    else {
+        fwrite((void *)source_address, s->unit_size, length, file);
+    }
+   fclose(file);
+   
 }
 
 
