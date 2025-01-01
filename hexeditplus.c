@@ -106,20 +106,87 @@ void notImplementedYet(state* s) {
     printf("Not implemented yet\n");
 }
 
-void fileDisplay(state* s) {
-    (void)s; // Suppress unused parameter warning
+void memoryModify (state* s){
+     (void)s; // Suppress unused parameter warning
     printf("Not implemented yet\n");
 }
 
-void memoryDisplay(state* s) {
+
+void fileDisplay(state* s){
+     if (strcmp(s->file_name, "") == 0) {
+        printf("Error: file name is empty\n");
+        return;
+    }
+
+    FILE *file = fopen(s->file_name, "rb");
+    if (file == NULL) {
+        printf("Error: could not open file '%s'\n", s->file_name);
+        return;
+    }
+
+    printf("Enter file offset and lenegth\n");
+    unsigned int address;
+    int length;
+    char input[10000];
+
+    scanf("%x %d", &address, &length); // read the address in hex and the length in decimal
+    printf("%s\n", s-> display_mode == 1 ? "Decimal" : "Hexadecimal");
+    printf("%s\n", s-> display_mode == 1 ? "=======" : "===========");
     static char* hex_formats[] = {"%#hhx\n", "%#hx\n", "No such unit", "%#x\n"};
     static char* dec_formats[] = {"%#hhd\n", "%#hd\n", "No such unit", "%#d\n"};
-    int u = s->unit_size;
-    for (size_t i = 0; i < s->mem_count; i += u) {
+
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        printf("Error reading input\n");
+        fclose(file);
+        return;
+    }
+
+    for (int i = 0; i < length; i++) {
+        int unitSize = s->unit_size;
+        int value = 0;
+        unsigned char* tmp;        
+        tmp = (unsigned char*)(address + i * unitSize);
+        value = *((int*)tmp);
+
+        if (s->display_mode == 0) {
+            printf(hex_formats[s->unit_size - 1], value);
+        } else {
+            printf(dec_formats[s->unit_size - 1], value);
+        }
+    }
+}
+
+void memoryDisplay(state* s){
+      printf("Please enter <addr> <u>\n");
+    char input[100];
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        printf("Error reading input\n");
+        return;
+    }
+
+    unsigned int addr;
+    int u;
+    if (sscanf(input, "%x %d", &addr, &u) != 2) {
+        printf("Invalid input format\n");
+        return;
+    }
+
+     if (s->debug_mode) {
+        printf("Debug: addr: %x\n", addr);
+        printf("Debug: u: %d\n", u);
+    }
+
+    unsigned char* start_addr = (addr == 0) ? s->mem_buf : (unsigned char*)addr;
+    static char* hex_formats[] = {"%#hhx\n", "%#hx\n", "No such unit", "%#x\n"};
+    static char* dec_formats[] = {"%#hhd\n", "%#hd\n", "No such unit", "%#d\n"};
+    for (size_t i = 0; i < u * s->unit_size; i += s->unit_size) {
         int val = 0;
-        memcpy(&val, s->mem_buf + i, u);
-        printf(dec_formats[u-1], val);
-        printf(hex_formats[u-1], val);
+        memcpy(&val, start_addr + i, s->unit_size);
+        if (s->display_mode) {
+            printf(hex_formats[s->unit_size - 1], val);
+        } else {
+            printf(dec_formats[s->unit_size - 1], val);
+        }
     }
 }
 
@@ -138,10 +205,6 @@ void saveIntoFile(state* s) {
     printf("Not implemented yet\n");
 }
 
-void memoryModify(state* s) {
-    (void)s; // Suppress unused parameter warning
-    printf("Not implemented yet\n");
-}
 
 struct fun_desc {
     char *name;
