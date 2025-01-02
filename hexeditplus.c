@@ -124,19 +124,10 @@ void memoryModify (state* s){
         printf("Debug: val: %x\n", val);
     }
     
-    switch (s->unit_size) {
-        case 1:
-            *((unsigned char*)(s->mem_buf + location)) = (unsigned char)val;
-            break;
-        case 2:
-            *((unsigned short*)(s->mem_buf + location)) = (unsigned short)val;
-            break;
-        case 4:
-            *((unsigned int*)(s->mem_buf + location)) = (unsigned int)val;
-            break;
-        default:
-            printf("Error: invalid unit size\n");
-            return;
+    *(unsigned int*)(s->mem_buf + location) = val;
+    printf("Value %x was set at location %x\n", val, location);
+    if (location + s->unit_size > s->mem_count) {
+        s->mem_count = location + s->unit_size;
     }
 }
 
@@ -214,7 +205,7 @@ void memoryDisplay(state* s){
     }
 
     unsigned char* tmp;
-    for (size_t i = 0; i < length; i += s->unit_size) {
+    for (int  i = 0; i < length; i += s->unit_size) {
         int val = 0;
         tmp = (unsigned char*)(s->mem_buf + i * s->unit_size);
         val = *((int*)tmp);
@@ -269,7 +260,7 @@ void saveIntoFile(state* s) {
         return;
     }
     fseek(file, 0, SEEK_END); //to get the file size
-    int fileSize =  ftell(file); 
+    unsigned int fileSize =  ftell(file); 
     
     printf("file size: %d\n", fileSize);
     printf("target location: %d\n", target_location);
@@ -287,12 +278,11 @@ void saveIntoFile(state* s) {
     }
     
     fseek(file, target_location, SEEK_SET);
-    if (source_address) {
-        fwrite(s->mem_buf, s->unit_size, length, file); 
-    }
-    else {
-        fwrite((void *)source_address, s->unit_size, length, file);
-    }
+    if (source_address == 0) {
+        fwrite(&(s->mem_buf), s->unit_size, length, file);
+    } else {
+        fwrite(&source_address, s->unit_size, length, file);
+    }   
    fclose(file);
    
 }
