@@ -152,8 +152,8 @@ void fileDisplay(state* s) {
         return;
     }
     
-      printf("%s\n", s-> display_mode == 1 ? "Decimal" : "Hexadecimal");
-      printf("%s\n", s-> display_mode == 1 ? "=======" : "===========");
+      printf("%s\n", s-> display_mode == 0 ? "Decimal" : "Hexadecimal");
+      printf("%s\n", s-> display_mode == 0 ? "=======" : "===========");
     unsigned int offset;
     int u;
     if (sscanf(input, "%x %d", &offset, &u) != 2) {
