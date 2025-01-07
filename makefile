@@ -1,33 +1,15 @@
-# Compiler
-CC = gcc
+all: hexeditplus digit_counter
 
-# Compiler Flags
-CFLAGS = -Wall -Wextra -g
+hexeditplus: task1.o
+	gcc -m32 -g -Wall -o hexeditplus task1.o
 
-# Source Files
-SRCS = $(wildcard *.c)
+task1.o: task1.c
+	gcc -m32 -g -Wall -c -o task1.o task1.c
 
-# Object Files
-OBJS = $(SRCS:.c=.o)
+digit_counter: task4.c
+	gcc -m32 -fno-pie -fno-stack-protector -no-pie -o digit_counter task4.c
 
-# Executable Name
-EXEC = hexeditplus
+.PHONY: clean
 
-# Default Rule
-all: $(EXEC)
-
-# Linking Step
-$(EXEC): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS)
-
-# Compilation Step
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Clean Rule
 clean:
-	rm -f $(OBJS) $(EXEC)
-
-# Run the Program
-run: $(EXEC)
-	./$(EXEC)
+	rm -f *.o hexeditplus digit_counter
